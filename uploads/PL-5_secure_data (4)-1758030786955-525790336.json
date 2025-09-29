@@ -1,0 +1,46 @@
+{
+  "referenceNumber": "PL-5",
+  "dateGenerated": "2025-09-10T23:57:45.276Z",
+  "estimatedShipDate": "2025-09-18",
+  "exporter": {
+    "company": "Mr Supplier ",
+    "contact": "Mrs Supplier "
+  },
+  "consignee": {
+    "company": "Importer",
+    "contact": "Import 2"
+  },
+  "shipping": {
+    "portOfLoading": "GB LDN",
+    "portOfDischarge": "ZA WC",
+    "incoterm": "FOB",
+    "specialInstructions": ""
+  },
+  "orderDetails": {
+    "orderNumber": "5",
+    "orderType": "Export",
+    "currency": "USD"
+  },
+  "lineItems": [
+    {
+      "lineNumber": 1,
+      "partNumber": "BT-001",
+      "description": "Orange T-Shirt",
+      "quantity": 19,
+      "unitOfMeasure": "UNIT",
+      "unitPrice": 0,
+      "lineTotal": 0,
+      "lineStatus": "Pending",
+      "weight": 300,
+      "volume": 30000
+    }
+  ],
+  "summary": {
+    "totalLines": 1,
+    "totalQuantity": 19,
+    "totalValue": 0,
+    "totalWeight": 300,
+    "totalVolume": 30000
+  },
+  "securityHash": "baf1916e324c6c8bb8a8d1eceb9f3c7b98a45c1ef214d6c8a91dab336168fc0e"
+}

@@ -1,0 +1,191 @@
+// app.js
+// -----------------------------------------------------
+// npm install express mssql body-parser cors puppeteer handlebars
+// -----------------------------------------------------
+
+const express = require('express');
+const sql = require('mssql');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+const handlebars = require('handlebars');
+
+const app = express();
+const port = 3000;
+
+// Middleware
+app.use(bodyParser.json());
+app.use(cors());
+
+// SQL Server configuration
+const dbConfig = {
+  server: 'localhost',
+  database: 'BlueMoonDB',
+  port: 1434, // Your SQL Server port
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
+  authentication: {
+    type: 'default',
+    options: {
+      userName: 'bluemoon1', // SQL Server username
+      password: '1234567',   // SQL Server password
+    },
+  },
+};
+
+// Connect to SQL Server
+async function connectDB() {
+  try {
+    await sql.connect(dbConfig);
+    console.log("✅ Connected to SQL Server!");
+  } catch (err) {
+    console.error("❌ Database connection failed:", err);
+  }
+}
+
+connectDB();
+
+/* ---------------------------------------------------------------
+   Helper: Generate PDF using Puppeteer & Handlebars
+--------------------------------------------------------------- */
+async function generateInvoicePDF(invoiceData) {
+  try {
+    // 1) Read your HTML invoice template from templates folder
+    //    Make sure invoiceTemplate.html is in the same folder as app.js OR adjust the path
+    const templatePath = path.join(__dirname, 'templates', 'invoiceTemplate.html');
+    const templateContent = fs.readFileSync(templatePath, 'utf8');
+
+    // 2) Compile using Handlebars
+    const template = handlebars.compile(templateContent);
+    const html = template(invoiceData);
+
+    // 3) Launch Puppeteer, render HTML to PDF
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    // Wait for the page to fully render
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    // Generate the PDF in A4 size
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (err) {
+    console.error("Error in generateInvoicePDF:", err);
+    throw err;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Existing Orders CRUD endpoints (example)
+   Adjust as needed for your environment
+--------------------------------------------------------------- */
+
+// GET all orders
+app.get('/orders', async (req, res) => {
+  console.log("GET /orders called.");
+  try {
+    const result = await sql.query('SELECT * FROM Orders');
+    console.log("Records returned from /orders:", result.recordset.length);
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Other endpoints (POST, PUT, DELETE, etc.) go here...
+
+/* ---------------------------------------------------------------
+   NEW: Invoice Generation Endpoint: GET /invoice/:id
+--------------------------------------------------------------- */
+app.get('/invoice/:id', async (req, res) => {
+  const orderId = req.params.id;
+  console.log("GET /invoice/:id called, ID =", orderId);
+
+  try {
+    // 1) Fetch the order from DB
+    const request = new sql.Request();
+    request.input('OrderID', sql.Int, orderId);
+    const result = await request.query('SELECT * FROM Orders WHERE OrderID = @OrderID');
+
+    if (result.recordset.length === 0) {
+      console.log("❌ No order found with ID =", orderId);
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const order = result.recordset[0];
+
+    // 2) Prepare the data to pass into the invoice template
+    //    We reference the i.XBeta.png file from your React "public" folder,
+    //    which is served at http://localhost:3000/i.XBeta.png
+    const invoiceData = {
+      companyLogo: 'http://localhost:3000/i.XBeta.png',
+      companyName: 'Your Company Name',
+      companyEmail: 'info@yourcompany.com',
+      companyPhone: '123-456-7890',
+      companyVatNo: 'VAT123456',
+      companyRegNo: 'REG123456',
+
+      invoiceNumber: order.orderNumber || `INV-${order.OrderID}`,
+      invoiceDate: new Date().toISOString().split('T')[0],
+      agentRef: order.agentRef || 'AgentRef',
+      paymentTerms: order.paymentTerms || 'Net 30',
+      paymentDate: '2023-12-01', // example placeholder
+
+      accNo: 'ACC-12345',
+      customerName: order.exporter || 'Unknown Exporter',
+      consigneeName: order.ShipmentConsignee || 'Unknown Consignee',
+
+      bankDetails: 'Your Bank Details Here',
+      branchCode: 'BR123',
+      bankAccNo: 'BA123456',
+
+      // If you have line items in another table, query them and map them here
+      lineItems: [
+        // example static line
+        { description: 'Item 1', quantity: 2, unitPrice: 100, vatCode: 'S', lineTotal: 200 },
+      ],
+
+      subTotal: 200,
+      vatTotal: 30,
+      grandTotal: 230,
+      companyWebsite: 'https://www.yourcompany.com'
+    };
+
+    // 3) Generate the PDF
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
+    console.log("PDF generated, size =", pdfBuffer.length, "bytes");
+
+    // 4) Return PDF to the client
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error("❌ Error generating invoice:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ---------------------------------------------------------------
+   Serve Production Build (Static Files)
+   Adjust path if your dist folder is elsewhere
+--------------------------------------------------------------- */
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
+/* ---------------------------------------------------------------
+   Start the Server
+--------------------------------------------------------------- */
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on http://10.5.0.2:${port}`);
+});
