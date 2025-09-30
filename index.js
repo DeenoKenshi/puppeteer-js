@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const puppeteer = require('puppeteer');
+// const puppeteer = require('puppeteer');
 const handlebars = require('handlebars');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -596,15 +596,14 @@ app.post('/notify', async (req, res) => {
    - Compiles it using Handlebars with provided invoiceData
    - Uses Puppeteer to render the HTML into a PDF buffer
 ---------------------------------------------------------------- */
+/*
 async function generateInvoicePDF(invoiceData) {
   try {
     const templatePath = path.join(__dirname, 'templates', 'invoiceTemplate.html');
     const templateContent = fs.readFileSync(templatePath, 'utf8');
-
     // Compile the template
     const template = handlebars.compile(templateContent);
     const html = template(invoiceData);
-
     // Launch Puppeteer
     const browser = await puppeteer.launch({
     executablePath: process.env.NODE_ENV === 'production' ? '/usr/bin/google-chrome-stable' : undefined,
@@ -622,13 +621,13 @@ async function generateInvoicePDF(invoiceData) {
     // Generate PDF in A4 format
     const pdfBuffer = await page.pdf({ format: 'A4' });
     await browser.close();
-
     return pdfBuffer;
   } catch (err) {
     console.error("Error in generateInvoicePDF:", err);
     throw err;
   }
 }
+*/
 
 /* ---------------------------------------------------------------
    Orders Routes - CONVERTED TO POSTGRESQL
@@ -5184,6 +5183,7 @@ app.get('/api/communications/unread-count', async (req, res) => {
    - Generates PDF using Puppeteer & Handlebars
    - Returns PDF as binary
 ---------------------------------------------------------------- */
+/*
 app.get('/invoice/:id', async (req, res) => {
   const orderId = req.params.id;
   console.log("GET /invoice/:id called, ID =", orderId);
@@ -5247,6 +5247,7 @@ app.get('/invoice/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+*/
 
 /* ---------------------------------------------------------------
    FINAL INVOICE ENDPOINTS COMPLETION - CONVERTED
